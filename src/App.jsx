@@ -65,8 +65,13 @@ function App() {
 
       {/* 页脚 */}
       <footer className="app-footer">
-        <div className="container">
-          <p>Powered by Nano Banana Pro • 速创 API</p>
+        <div className="container footer-content">
+          <p>Powered by Nano Banana Pro</p>
+          <div className="footer-info">
+            <span>开发者: Mr.Huang</span>
+            <span>邮箱: zshyh@foxmail.com</span>
+            <span>公众号: 人工智能与教学资源</span>
+          </div>
         </div>
       </footer>
     </div>
