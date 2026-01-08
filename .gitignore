@@ -11,8 +11,16 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# 测试文件
+test-*.js
+t*.png
 .env
 .env.local
+.env.*.local
+.wrangler
+.dev.vars
+.vercel
 
 # Editor directories and files
 .vscode/*

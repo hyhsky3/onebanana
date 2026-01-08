@@ -7,11 +7,16 @@ import axios from 'axios';
 
 // API 配置 - GRSAI 国内直连节点
 const API_BASE_URL = 'https://grsai.dakka.com.cn';
-// 从环境变量获取 API Key，增强安全性（在 Netlify 后台设置）
-const API_KEY = import.meta.env.VITE_GRSAI_API_KEY || 'sk-cb6ce7c67127418e91a56c3892604f34';
+// 从环境变量获取 API Key（在 Cloudflare Pages 后台设置）
+const API_KEY = import.meta.env.VITE_GRSAI_API_KEY || '';
 const API_ENDPOINT = '/v1/draw/nano-banana'; // Nano Banana 绘画接口
 const RESULT_ENDPOINT = '/v1/draw/result';   // 单独轮询结果接口
 const MODEL_NAME = 'nano-banana-pro';        // 用户指定的模型
+
+// 检查 API Key 是否配置
+if (!API_KEY) {
+  console.warn('⚠️ VITE_GRSAI_API_KEY 环境变量未设置，请在 Cloudflare Pages 后台配置');
+}
 
 // 创建 axios 实例
 const apiClient = axios.create({
@@ -71,7 +76,10 @@ export const compressImage = (file, maxWidth = 1024, maxHeight = 1024, quality =
  */
 export const uploadImage = async (base64) => {
   try {
-    const imgbbKey = 'bd521134b0e14ad15cf962e2d002544e';
+    const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY || '';
+    if (!imgbbKey) {
+      throw new Error('VITE_IMGBB_API_KEY 环境变量未设置');
+    }
     const formData = new FormData();
     formData.append('image', base64.replace(/^data:image\/\w+;base64,/, ""));
 
@@ -113,14 +121,14 @@ const generateContent = async ({ prompt, images = [], aspectRatio, resolution })
     const imageUrls = await Promise.all(images.map(async img => {
       // 如果已经是公网 URL，直接返回
       if (typeof img === 'string' && img.startsWith('http')) return img;
-      
+
       // 如果是 Base64 (带前缀或不带前缀)，直接组合成 API 要求的格式
       // 注意：GRSAI 文档通常支持 data:image/... 格式或纯 base64
       // 这里我们为了兼容性，统一确保它是带 data:image/jpeg;base64, 前缀的格式，或者按文档直接传
       if (typeof img === 'string' && img.startsWith('data:')) {
         return img;
       }
-      
+
       // 如果是纯 Base64 (来自 compressImage)，补充前缀
       return `data:image/jpeg;base64,${img}`;
     }));
