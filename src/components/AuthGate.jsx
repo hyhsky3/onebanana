@@ -44,8 +44,8 @@ const AuthGate = ({ children }) => {
         <div className="auth-overlay">
             <div className="auth-card">
                 <div className="auth-icon">🔒</div>
-                <h2 className="auth-title">访问受限 / Restricted</h2>
-                <p className="auth-subtitle">请输入访问密码以继续使用<br />Please enter password to continue</p>
+                <h2 className="auth-title">亲爱的原始股东，欢迎回家</h2>
+                <p className="auth-subtitle">请输入密码</p>
 
                 <form className="auth-form" onSubmit={handleLogin}>
                     <input
