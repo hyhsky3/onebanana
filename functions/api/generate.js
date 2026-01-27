@@ -40,11 +40,13 @@ export async function onRequestPost(context) {
             });
         }
 
+        // 成本优化：将 4K 请求转换为 2K
+        const actualResolution = resolution === '4k' ? '2k' : resolution;
+
         // 构造增强提示词
         let enhancedPrompt = prompt;
-        if (resolution === '4k') {
-            enhancedPrompt += ', extreme detail, 4k resolution, ultra hd';
-        } else if (resolution === '2k') {
+        if (actualResolution === '2k' || resolution === '4k') {
+            // 4K 和 2K 都使用 2K 输出，但提示词仍保持高质量描述
             enhancedPrompt += ', high detail, 2k resolution';
         }
         if (aspectRatio) {
@@ -77,7 +79,7 @@ export async function onRequestPost(context) {
             });
         }
 
-        const finalResolution = resolution ? resolution.toUpperCase() : '1K';
+        const finalResolution = actualResolution ? actualResolution.toUpperCase() : '1K';
 
         // 构造请求体
         const requestBody = {

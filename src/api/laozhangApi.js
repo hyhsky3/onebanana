@@ -138,7 +138,8 @@ const generateContent = async ({ prompt, images = [], aspectRatio, resolution })
     }
 
     // 开发环境：直接调用 AI API（方便本地调试）
-    console.log('🚀 发送请求 (开发模式 - 直接调用 AI API)');
+    // 注意：开发环境支持真 4K，生产环境（后端代理）会将 4K 降为 2K 以节省成本
+    console.log('🚀 发送请求 (开发模式 - 直接调用 AI API, 支持真 4K)');
 
     // 构造增强提示词
     let enhancedPrompt = prompt;
