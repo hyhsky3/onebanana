@@ -1,0 +1,19 @@
+services:
+  banana-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_AI_API_KEY=${VITE_AI_API_KEY}
+        - VITE_AI_BASE_URL=${VITE_AI_BASE_URL}
+        - VITE_AI_MODEL_ID=${VITE_AI_MODEL_ID}
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_AI_API_KEY=${VITE_AI_API_KEY}
+      - VITE_AI_BASE_URL=${VITE_AI_BASE_URL}
+      - VITE_AI_MODEL_ID=${VITE_AI_MODEL_ID}
+    # If you have a .env file, docker-compose will automatically load it.
+    # Otherwise, you can specify it here:
+    # env_file:
+    #   - .env.local

@@ -21,9 +21,27 @@ const RESOLUTIONS = [
 
 const STORAGE_KEY = 'banana_ai_image_v1';
 
+const loadSavedState = () => {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return {};
+        if (raw.length > 200000) {
+            localStorage.removeItem(STORAGE_KEY);
+            return {};
+        }
+        return JSON.parse(raw);
+    } catch {
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+        } catch {
+        }
+        return {};
+    }
+};
+
 function ImageToImage() {
     // 从 localStorage 初始化状态
-    const savedState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const savedState = loadSavedState();
 
     const [images, setImages] = useState([]); // 源图不持久化，因容量限制
     const [prompt, setPrompt] = useState(savedState.prompt || '');
@@ -31,7 +49,7 @@ function ImageToImage() {
     const [aspectRatio, setAspectRatio] = useState(savedState.aspectRatio || '1:1');
     const [resolution, setResolution] = useState(savedState.resolution || '2k');
     const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState(savedState.result || null);
+    const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [refinePrompt, setRefinePrompt] = useState('');
 
@@ -42,14 +60,35 @@ function ImageToImage() {
             strength,
             aspectRatio,
             resolution,
-            result
         };
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
         } catch (e) {
             console.warn('LocalStorage save failed (possibly full):', e);
         }
-    }, [prompt, strength, aspectRatio, resolution, result]);
+    }, [prompt, strength, aspectRatio, resolution]);
+
+    useEffect(() => {
+        const urlToRevoke = result?.imageUrl;
+        return () => {
+            if (urlToRevoke && urlToRevoke.startsWith('blob:')) {
+                URL.revokeObjectURL(urlToRevoke);
+            }
+        };
+    }, [result?.imageUrl]);
+
+    const blobToBase64Data = (blob) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const dataUrl = reader.result;
+                const base64 = String(dataUrl).split(',')[1] || '';
+                resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    };
 
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files || []);
@@ -119,7 +158,11 @@ function ImageToImage() {
             });
 
             if (response.success) {
-                setResult(response);
+                setResult({
+                    imageUrl: response.imageUrl,
+                    imageBlob: response.imageBlob || null,
+                    mimeType: response.mimeType || null,
+                });
             } else {
                 setError(response.error);
             }
@@ -146,9 +189,17 @@ function ImageToImage() {
         setResult(null); // 清空结果以显示加载状态
 
         try {
-            // 直接将生成结果的 URL 传回 API，无需转换，效率最高且避免 500
+            const base64Str = result.imageBlob
+                ? await blobToBase64Data(result.imageBlob)
+                : (currentResultImage.startsWith('data:') ? currentResultImage.split(',')[1] : '');
+
+            if (!base64Str) {
+                setError('当前图片无法用于再次修改，请重新生成');
+                return;
+            }
+
             const response = await imageToImage({
-                images: [currentResultImage],
+                images: [base64Str],
                 prompt: refinePrompt,
                 strength: strength,
                 aspectRatio,
@@ -156,7 +207,11 @@ function ImageToImage() {
             });
 
             if (response.success) {
-                setResult(response);
+                setResult({
+                    imageUrl: response.imageUrl,
+                    imageBlob: response.imageBlob || null,
+                    mimeType: response.mimeType || null,
+                });
                 setRefinePrompt(''); // 清空输入框
             } else {
                 setError(response.error);
@@ -171,30 +226,26 @@ function ImageToImage() {
     const handleDownload = () => {
         if (!result?.imageUrl) return;
 
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = result.imageUrl;
+        const link = document.createElement('a');
+        const mimeType = result.mimeType || 'image/png';
+        const ext = mimeType.includes('jpeg') ? 'jpg' : (mimeType.includes('webp') ? 'webp' : 'png');
 
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-
-            const dataURL = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.href = dataURL;
-            link.download = `banana-ai-gen-${Date.now()}.png`;
+        if (result.imageBlob) {
+            const objectUrl = URL.createObjectURL(result.imageBlob);
+            link.href = objectUrl;
+            link.download = `banana-ai-gen-${Date.now()}.${ext}`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        };
+            URL.revokeObjectURL(objectUrl);
+            return;
+        }
 
-        img.onerror = () => {
-            console.error('Canvas download failed, falling back to window.open');
-            window.open(result.imageUrl, '_blank');
-        };
+        link.href = result.imageUrl;
+        link.download = `banana-ai-gen-${Date.now()}.${ext}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (

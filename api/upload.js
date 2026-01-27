@@ -22,8 +22,13 @@ export default async function handler(req, res) {
         // 剔除前缀 (ImgBB API 只接受纯 base64)
         const cleanBase64 = base64.replace(/^data:image\/\w+;base64,/, "");
 
-        // 使用项目文档中指定的 ImgBB API Key
-        const apiKey = 'bd521134b0e14ad15cf962e2d002544e';
+        const apiKey = process.env.IMGBB_API_KEY || process.env.VITE_IMGBB_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({
+                success: false,
+                error: 'Missing IMGBB_API_KEY environment variable'
+            });
+        }
 
         // 发送到 ImgBB
         const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
                 url: data.data.url
             });
         } else {
-            console.error('ImgBB API Error:', data);
+            console.error('ImgBB API Error');
             return res.status(data.status || 500).json({
                 success: false,
                 error: data.error?.message || 'ImgBB 上传失败'

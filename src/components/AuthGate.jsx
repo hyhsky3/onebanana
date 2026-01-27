@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Lock, ArrowRight } from 'lucide-react';
 import './AuthGate.css';
 
-const ACCESS_PASSWORD = '0760';
+const ACCESS_PASSWORD = import.meta.env.VITE_ACCESS_PASSWORD || '';
 const SESSION_KEY = 'banana_ai_access_granted';
 
 const AuthGate = ({ children }) => {
